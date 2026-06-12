@@ -1,5 +1,5 @@
-import { playAlarm, primeAlarm } from "./audio.js";
 import { CountdownTimer, formatTime } from "./timer.js";
+import { primeAlarm, scheduleAlarmIn, playAlarmNow, stopAlarm } from "./audio.js";
 import { requestWakeLock, releaseWakeLock } from "./wakelock.js";
 
 const STORAGE_KEY = "hockey-scoreboard-state";
@@ -7,75 +7,55 @@ const STORAGE_KEY = "hockey-scoreboard-state";
 const defaultState = {
   teamBlueName: "Blauw team",
   teamRedName: "Rood team",
-  scores: {
-    blue: 0,
-    red: 0,
-  },
+  scores: { blue: 0, red: 0 },
   selectedMinutes: 15,
 };
 
-const elements = {
+const el = {
+  board: document.querySelector("#board"),
+  blueName: document.querySelector("#blue-name"),
+  redName: document.querySelector("#red-name"),
+  blueScore: document.querySelector("#blue-score"),
+  redScore: document.querySelector("#red-score"),
+  tapButtons: [...document.querySelectorAll(".team__tap")],
+  minusButtons: [...document.querySelectorAll(".team__minus")],
+  clock: document.querySelector("#clock"),
+  clockTime: document.querySelector("#clock-time"),
+  status: document.querySelector("#status"),
+  openSettings: document.querySelector("#open-settings"),
+  sheet: document.querySelector("#settings-sheet"),
+  closeSettings: document.querySelector("#close-settings"),
   settingsForm: document.querySelector("#settings-form"),
-  teamBlueNameInput: document.querySelector("#team-blue-name"),
-  teamRedNameInput: document.querySelector("#team-red-name"),
-  customMinutesInput: document.querySelector("#custom-minutes"),
-  applyCustomTimeButton: document.querySelector("#apply-custom-time"),
-  toggleSetupButton: document.querySelector("#toggle-setup-button"),
-  setupContent: document.querySelector("#setup-content"),
-  newMatchButton: document.querySelector("#new-match-button"),
-  teamBlueNameDisplay: document.querySelector("#team-blue-display"),
-  teamRedNameDisplay: document.querySelector("#team-red-display"),
-  teamBlueScore: document.querySelector("#team-blue-score"),
-  teamRedScore: document.querySelector("#team-red-score"),
-  scoreButtons: [...document.querySelectorAll(".score-button")],
-  presetButtons: [...document.querySelectorAll(".preset-button")],
-  timerDisplay: document.querySelector("#timer-display"),
-  timerStatus: document.querySelector("#timer-status"),
-  timerPanel: document.querySelector(".timer-panel"),
-  timeUpBanner: document.querySelector("#time-up-banner"),
-  startButton: document.querySelector("#start-button"),
-  pauseButton: document.querySelector("#pause-button"),
-  resetButton: document.querySelector("#reset-button"),
+  blueNameInput: document.querySelector("#blue-name-input"),
+  redNameInput: document.querySelector("#red-name-input"),
+  presetButtons: [...document.querySelectorAll(".preset[data-minutes]")],
+  customMinutes: document.querySelector("#custom-minutes"),
+  testAlarm: document.querySelector("#test-alarm"),
+  resetClock: document.querySelector("#reset-clock"),
+  newMatch: document.querySelector("#new-match"),
 };
 
 let state = loadState();
-let timerCompleted = false;
+let completed = false;
+let alarmScheduled = false;
 
 const timer = new CountdownTimer({
   onTick: ({ remainingMs, isRunning }) => {
-    elements.timerDisplay.textContent = formatTime(remainingMs);
-    updateTimerButtons(isRunning, remainingMs);
-
-    if (timerCompleted) {
-      elements.timerStatus.textContent = "Tijd verstreken";
-      return;
-    }
-
-    if (isRunning) {
-      elements.timerStatus.textContent = "Klok loopt";
-      return;
-    }
-
-    if (remainingMs < timer.durationMs) {
-      elements.timerStatus.textContent = "Gepauzeerd";
-      return;
-    }
-
-    elements.timerStatus.textContent = "Klaar om te starten";
+    el.clockTime.textContent = formatTime(remainingMs);
+    updateClockUi(isRunning, remainingMs);
   },
-  onComplete: async () => {
-    timerCompleted = true;
-    updateTimerEndState();
-    updateTimerButtons(false, 0);
-    releaseWakeLock();
-    triggerVibration();
-    elements.timerStatus.textContent = "Tijd verstreken";
-
-    try {
-      await playAlarm();
-    } catch {
-      elements.timerStatus.textContent = "Tijd verstreken - controleer audio-instellingen";
+  onComplete: () => {
+    completed = true;
+    // Geluid is al ingepland op de audio-klok bij de start. Lukte dat niet,
+    // dan spelen we het alarm nu alsnog (best effort, app op de voorgrond).
+    if (!alarmScheduled) {
+      playAlarmNow();
     }
+    alarmScheduled = false;
+    triggerVibration();
+    releaseWakeLock();
+    setClockState("done");
+    el.status.textContent = "Tijd! Tik op de tijd om te stoppen";
   },
 });
 
@@ -83,81 +63,67 @@ initialize();
 
 function initialize() {
   bindEvents();
-  hydrateInputs();
-  applyStateToView();
+  hydrateSettings();
+  render();
   timer.setDurationMinutes(state.selectedMinutes);
-  updateTimerEndState();
+  setClockState("idle");
   registerServiceWorker();
 }
 
 function bindEvents() {
-  elements.settingsForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    saveNames();
+  el.tapButtons.forEach((button) => {
+    button.addEventListener("click", () => updateScore(button.dataset.team, 1));
   });
 
-  elements.applyCustomTimeButton.addEventListener("click", () => {
-    applySelectedMinutes(elements.customMinutesInput.value);
+  el.minusButtons.forEach((button) => {
+    button.addEventListener("click", () => updateScore(button.dataset.team, -1));
   });
 
-  elements.presetButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const minutes = sanitizeMinutes(button.dataset.minutes);
-      elements.customMinutesInput.value = String(minutes);
-      applySelectedMinutes(minutes);
-    });
-  });
-
-  elements.scoreButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const team = button.dataset.team;
-      const delta = Number(button.dataset.delta);
-      updateScore(team, delta);
-    });
-  });
-
-  elements.startButton.addEventListener("click", async () => {
-    if (timer.isRunning) {
+  el.clockTime.addEventListener("click", () => {
+    if (completed) {
+      resetClock();
       return;
     }
-
-    timerCompleted = false;
-    updateTimerEndState();
-    elements.startButton.disabled = true;
-    await safePrimeAlarm();
-    timer.start();
-    requestWakeLock();
+    if (timer.isRunning) {
+      pauseClock();
+    } else {
+      startClock();
+    }
   });
 
-  elements.pauseButton.addEventListener("click", () => {
-    timer.pause();
-    releaseWakeLock();
+  el.openSettings.addEventListener("click", openSettings);
+  el.closeSettings.addEventListener("click", closeSettings);
+  el.sheet.querySelector("[data-close]").addEventListener("click", closeSettings);
+
+  el.presetButtons.forEach((button) => {
+    button.addEventListener("click", () => applyMinutes(button.dataset.minutes));
   });
 
-  elements.resetButton.addEventListener("click", () => {
-    timerCompleted = false;
-    timer.reset();
-    releaseWakeLock();
-    updateTimerEndState();
-    updateTimerButtons(false, timer.remainingMs);
+  el.customMinutes.addEventListener("change", () => applyMinutes(el.customMinutes.value));
+
+  el.testAlarm.addEventListener("click", async () => {
+    await safePrime();
+    playAlarmNow();
   });
 
-  elements.toggleSetupButton.addEventListener("click", () => {
-    const isHidden = elements.setupContent.classList.toggle("hidden");
-    elements.toggleSetupButton.textContent = isHidden ? "Toon" : "Verberg";
-    elements.toggleSetupButton.setAttribute("aria-expanded", String(!isHidden));
+  el.resetClock.addEventListener("click", () => {
+    resetClock();
+    closeSettings();
   });
 
-  elements.newMatchButton.addEventListener("click", () => {
+  el.newMatch.addEventListener("click", () => {
     state.scores.blue = 0;
     state.scores.red = 0;
-    timerCompleted = false;
-    timer.reset();
-    releaseWakeLock();
-    updateTimerEndState();
-    updateTimerButtons(false, timer.remainingMs);
+    resetClock();
     persistState();
-    applyStateToView();
+    render();
+    closeSettings();
+  });
+
+  el.settingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveSettings();
+    closeSettings();
   });
 
   document.addEventListener("visibilitychange", () => {
@@ -166,76 +132,128 @@ function bindEvents() {
       if (timer.isRunning) {
         requestWakeLock();
       }
+      primeAlarm().catch(() => {});
     }
   });
 }
 
-function saveNames() {
-  state.teamBlueName = elements.teamBlueNameInput.value.trim() || defaultState.teamBlueName;
-  state.teamRedName = elements.teamRedNameInput.value.trim() || defaultState.teamRedName;
-  persistState();
-  applyStateToView();
-}
-
+/* ---------- Score ---------- */
 function updateScore(team, delta) {
-  const nextScore = Math.max(0, state.scores[team] + delta);
-  state.scores[team] = nextScore;
+  state.scores[team] = Math.max(0, state.scores[team] + delta);
   persistState();
-  applyStateToView();
+  render();
 }
 
-function applyStateToView() {
-  elements.teamBlueNameDisplay.textContent = state.teamBlueName;
-  elements.teamRedNameDisplay.textContent = state.teamRedName;
-  elements.teamBlueScore.textContent = String(state.scores.blue);
-  elements.teamRedScore.textContent = String(state.scores.red);
-  updateScoreButtons();
-  syncPresetButtons();
-}
-
-function updateScoreButtons() {
-  elements.scoreButtons.forEach((button) => {
-    if (Number(button.dataset.delta) < 0) {
-      button.disabled = state.scores[button.dataset.team] === 0;
-    }
+function render() {
+  el.blueName.textContent = state.teamBlueName;
+  el.redName.textContent = state.teamRedName;
+  el.blueScore.textContent = String(state.scores.blue);
+  el.redScore.textContent = String(state.scores.red);
+  el.minusButtons.forEach((button) => {
+    button.disabled = state.scores[button.dataset.team] === 0;
   });
+}
+
+/* ---------- Klok ---------- */
+function startClock() {
+  completed = false;
+  timer.start();
+  requestWakeLock();
+  // Audio mag de klok nooit blokkeren: prime + plan het alarm niet-blokkerend in.
+  primeAlarm()
+    .then(() => {
+      alarmScheduled = scheduleAlarmIn(timer.remainingMs / 1000);
+    })
+    .catch(() => {
+      alarmScheduled = false;
+      el.status.textContent = "Audio niet klaar — klok loopt wel";
+    });
+}
+
+function pauseClock() {
+  timer.pause();
+  stopAlarm();
+  alarmScheduled = false;
+  releaseWakeLock();
+}
+
+function resetClock() {
+  completed = false;
+  stopAlarm();
+  alarmScheduled = false;
+  timer.reset();
+  releaseWakeLock();
+  setClockState("idle");
+  el.clockTime.textContent = formatTime(timer.remainingMs);
+}
+
+function updateClockUi(isRunning, remainingMs) {
+  if (completed) {
+    setClockState("done");
+    return;
+  }
+  if (isRunning) {
+    setClockState("running");
+    el.status.textContent = "Klok loopt — tik om te pauzeren";
+  } else if (remainingMs < timer.durationMs) {
+    setClockState("paused");
+    el.status.textContent = "Gepauzeerd — tik om verder te gaan";
+  } else {
+    setClockState("idle");
+    el.status.textContent = "Tik op de tijd om te starten";
+  }
+}
+
+function setClockState(stateName) {
+  el.clock.dataset.state = stateName;
 }
 
 function triggerVibration() {
   if ("vibrate" in navigator) {
-    navigator.vibrate([300, 150, 300, 150, 600]);
+    navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]);
   }
 }
 
-function hydrateInputs() {
-  elements.teamBlueNameInput.value = state.teamBlueName;
-  elements.teamRedNameInput.value = state.teamRedName;
-  elements.customMinutesInput.value = String(state.selectedMinutes);
+/* ---------- Instellingen ---------- */
+function openSettings() {
+  hydrateSettings();
+  el.sheet.hidden = false;
 }
 
-function applySelectedMinutes(value) {
-  const minutes = sanitizeMinutes(value);
-  state.selectedMinutes = minutes;
-  timerCompleted = false;
-  elements.customMinutesInput.value = String(minutes);
+function closeSettings() {
+  el.sheet.hidden = true;
+}
+
+function hydrateSettings() {
+  el.blueNameInput.value = state.teamBlueName;
+  el.redNameInput.value = state.teamRedName;
+  el.customMinutes.value = String(state.selectedMinutes);
+  syncPresets();
+}
+
+function applyMinutes(value) {
+  state.selectedMinutes = sanitizeMinutes(value);
+  completed = false;
+  stopAlarm();
+  alarmScheduled = false;
+  timer.setDurationMinutes(state.selectedMinutes);
+  releaseWakeLock();
+  el.customMinutes.value = String(state.selectedMinutes);
+  el.clockTime.textContent = formatTime(timer.remainingMs);
+  setClockState("idle");
+  syncPresets();
   persistState();
-  syncPresetButtons();
-  timer.setDurationMinutes(minutes);
-  updateTimerEndState();
 }
 
-function updateTimerEndState() {
-  elements.timerPanel.classList.toggle("time-up", timerCompleted);
-  elements.timeUpBanner.hidden = !timerCompleted;
+function saveSettings() {
+  state.teamBlueName = el.blueNameInput.value.trim() || defaultState.teamBlueName;
+  state.teamRedName = el.redNameInput.value.trim() || defaultState.teamRedName;
+  applyMinutes(el.customMinutes.value);
+  render();
 }
 
-function updateTimerButtons(isRunning, remainingMs) {
-  elements.startButton.disabled = isRunning || timerCompleted || remainingMs === 0;
-  elements.pauseButton.disabled = !isRunning;
-}
-
-function syncPresetButtons() {
-  elements.presetButtons.forEach((button) => {
+function syncPresets() {
+  el.presetButtons.forEach((button) => {
     const isActive = Number(button.dataset.minutes) === Number(state.selectedMinutes);
     button.classList.toggle("active", isActive);
   });
@@ -245,18 +263,27 @@ function sanitizeMinutes(value) {
   return Math.max(1, Math.min(120, Number.parseInt(value, 10) || 1));
 }
 
+/* ---------- Audio helper ---------- */
+async function safePrime() {
+  try {
+    await primeAlarm();
+  } catch {
+    el.status.textContent = "Audio niet klaar — klok loopt wel";
+  }
+}
+
+/* ---------- Opslag ---------- */
 function persistState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function loadState() {
   try {
-    const savedState = localStorage.getItem(STORAGE_KEY);
-    if (!savedState) {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
       return structuredClone(defaultState);
     }
-
-    const parsed = JSON.parse(savedState);
+    const parsed = JSON.parse(saved);
     return {
       teamBlueName: parsed.teamBlueName || defaultState.teamBlueName,
       teamRedName: parsed.teamRedName || defaultState.teamRedName,
@@ -271,19 +298,10 @@ function loadState() {
   }
 }
 
-async function safePrimeAlarm() {
-  try {
-    await primeAlarm();
-  } catch {
-    elements.timerStatus.textContent = "Audio niet klaar, timer start wel";
-  }
-}
-
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) {
     return;
   }
-
   try {
     await navigator.serviceWorker.register("./sw.js");
   } catch {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0b5394">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Hockey Scoreboard</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,98 +14,79 @@
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-  <main class="app-shell">
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">Mobiele scheidsrechter app</p>
-        <h1>Hockey Scoreboard</h1>
-      </div>
-      <button id="new-match-button" class="ghost-button" type="button">Nieuwe wedstrijd</button>
-    </header>
-
-    <section class="setup-card" aria-labelledby="setup-heading">
-      <div class="setup-header">
-        <div>
-          <p class="eyebrow">Instellingen</p>
-          <h2 id="setup-heading">Wedstrijd instellen</h2>
-        </div>
-        <button id="toggle-setup-button" class="ghost-button" type="button" aria-expanded="true" aria-controls="setup-content">Verberg</button>
-      </div>
-
-      <div id="setup-content" class="setup-content">
-        <form id="settings-form" class="settings-grid">
-          <label class="field">
-            <span>Blauw team</span>
-            <input id="team-blue-name" name="teamBlueName" type="text" maxlength="24" placeholder="Blauw team" required>
-          </label>
-
-          <label class="field">
-            <span>Rood team</span>
-            <input id="team-red-name" name="teamRedName" type="text" maxlength="24" placeholder="Rood team" required>
-          </label>
-
-          <fieldset class="field timer-presets">
-            <legend>Speeltijd</legend>
-            <div class="preset-row">
-              <button class="preset-button" type="button" data-minutes="15">15 min</button>
-              <button class="preset-button" type="button" data-minutes="30">30 min</button>
-              <label class="custom-duration">
-                <span>Vrij</span>
-                <input id="custom-minutes" type="number" min="1" max="120" step="1" inputmode="numeric" value="35">
-              </label>
-            </div>
-          </fieldset>
-
-          <div class="form-actions">
-            <button class="primary-button" type="submit">Instellingen opslaan</button>
-            <button id="apply-custom-time" class="secondary-button" type="button">Vrije tijd instellen</button>
-          </div>
-        </form>
-      </div>
+  <main class="board" id="board">
+    <section class="team team--blue">
+      <button class="team__tap" type="button" data-team="blue" data-delta="1" aria-label="Doelpunt voor blauw team">
+        <span class="team__label">Blauw</span>
+        <span class="team__name" id="blue-name">Blauw team</span>
+        <span class="team__score" id="blue-score" aria-live="polite">0</span>
+        <span class="team__hint">tik = +1</span>
+      </button>
+      <button class="team__minus" type="button" data-team="blue" data-delta="-1" aria-label="Doelpunt eraf bij blauw team">&minus;1</button>
     </section>
 
-    <section class="match-layout" aria-label="Scorebord">
-      <article class="team-panel team-blue" aria-labelledby="team-blue-display">
-        <p class="team-label">Blauw</p>
-        <h2 id="team-blue-display" class="team-name">Blauw team</h2>
-        <p id="team-blue-score" class="team-score" aria-live="polite">0</p>
-        <div class="score-controls">
-          <button class="score-button" type="button" data-team="blue" data-delta="-1">-1</button>
-          <button class="score-button positive" type="button" data-team="blue" data-delta="1">+1</button>
-        </div>
-      </article>
-
-      <section class="timer-panel" aria-labelledby="timer-heading">
-        <div>
-          <p class="eyebrow">Wedstrijdklok</p>
-          <h2 id="timer-heading">Aftellen</h2>
-        </div>
-
-        <div id="time-up-banner" class="time-up-banner" hidden>
-          Tijd verstreken
-        </div>
-
-        <p id="timer-display" class="timer-display">15:00</p>
-        <p id="timer-status" class="timer-status" aria-live="polite">Klaar om te starten</p>
-
-        <div class="timer-actions">
-          <button id="start-button" class="primary-button" type="button">Start</button>
-          <button id="pause-button" class="secondary-button" type="button">Pauze</button>
-          <button id="reset-button" class="ghost-button" type="button">Reset</button>
-        </div>
-      </section>
-
-      <article class="team-panel team-red" aria-labelledby="team-red-display">
-        <p class="team-label">Rood</p>
-        <h2 id="team-red-display" class="team-name">Rood team</h2>
-        <p id="team-red-score" class="team-score" aria-live="polite">0</p>
-        <div class="score-controls">
-          <button class="score-button" type="button" data-team="red" data-delta="-1">-1</button>
-          <button class="score-button positive" type="button" data-team="red" data-delta="1">+1</button>
-        </div>
-      </article>
+    <section class="team team--red">
+      <button class="team__tap" type="button" data-team="red" data-delta="1" aria-label="Doelpunt voor rood team">
+        <span class="team__label">Rood</span>
+        <span class="team__name" id="red-name">Rood team</span>
+        <span class="team__score" id="red-score" aria-live="polite">0</span>
+        <span class="team__hint">tik = +1</span>
+      </button>
+      <button class="team__minus" type="button" data-team="red" data-delta="-1" aria-label="Doelpunt eraf bij rood team">&minus;1</button>
     </section>
+
+    <div class="clock" id="clock" data-state="idle">
+      <button class="clock__time" id="clock-time" type="button" aria-label="Start of pauzeer de wedstrijdklok">15:00</button>
+      <button class="clock__gear" id="open-settings" type="button" aria-label="Instellingen openen">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/>
+          <path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 .06-1 7.6 7.6 0 0 0-.06-1l2-1.6a.5.5 0 0 0 .12-.62l-1.9-3.3a.5.5 0 0 0-.6-.22l-2.4.96a7 7 0 0 0-1.7-1l-.36-2.5a.5.5 0 0 0-.5-.42h-3.8a.5.5 0 0 0-.5.42l-.36 2.5a7 7 0 0 0-1.7 1l-2.4-.96a.5.5 0 0 0-.6.22l-1.9 3.3a.5.5 0 0 0 .12.63l2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.12.62l1.9 3.3a.5.5 0 0 0 .6.22l2.4-.96a7 7 0 0 0 1.7 1l.36 2.5a.5.5 0 0 0 .5.42h3.8a.5.5 0 0 0 .5-.42l.36-2.5a7 7 0 0 0 1.7-1l2.4.96a.5.5 0 0 0 .6-.22l1.9-3.3a.5.5 0 0 0-.12-.62l-2-1.6Z" opacity=".85"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="status" id="status" aria-live="polite">Tik op de tijd om te starten</p>
   </main>
+
+  <div class="sheet" id="settings-sheet" hidden>
+    <div class="sheet__backdrop" data-close></div>
+    <section class="sheet__panel" role="dialog" aria-modal="true" aria-label="Instellingen">
+      <header class="sheet__head">
+        <h2>Instellingen</h2>
+        <button class="sheet__close" id="close-settings" type="button" aria-label="Sluiten">&times;</button>
+      </header>
+
+      <form id="settings-form" class="sheet__form">
+        <label class="field">
+          <span>Blauw team</span>
+          <input id="blue-name-input" type="text" maxlength="20" placeholder="Blauw team" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Rood team</span>
+          <input id="red-name-input" type="text" maxlength="20" placeholder="Rood team" autocomplete="off">
+        </label>
+
+        <fieldset class="field presets">
+          <legend>Speeltijd (minuten)</legend>
+          <div class="presets__row">
+            <button class="preset" type="button" data-minutes="15">15</button>
+            <button class="preset" type="button" data-minutes="30">30</button>
+            <button class="preset" type="button" data-minutes="35">35</button>
+            <label class="preset preset--custom">
+              <input id="custom-minutes" type="number" min="1" max="120" step="1" inputmode="numeric" value="15" aria-label="Vrije speeltijd in minuten">
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="sheet__actions">
+          <button class="btn btn--ghost" id="test-alarm" type="button">Alarm testen</button>
+          <button class="btn btn--ghost" id="reset-clock" type="button">Klok resetten</button>
+          <button class="btn btn--ghost" id="new-match" type="button">Nieuwe wedstrijd</button>
+          <button class="btn btn--primary" type="submit">Opslaan &amp; sluiten</button>
+        </div>
+      </form>
+    </section>
+  </div>
 
   <script type="module" src="js/app.js"></script>
 </body>
