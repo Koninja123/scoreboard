@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Hockey Scoreboard Icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b5394"/>
+      <stop offset="100%" stop-color="#b51f30"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="64" y="104" width="384" height="304" rx="64" fill="#ffffff" fill-opacity="0.9"/>
+  <text x="256" y="232" text-anchor="middle" font-size="88" font-family="Segoe UI, sans-serif" font-weight="700" fill="#102033">12:00</text>
+  <text x="170" y="336" text-anchor="middle" font-size="92" font-family="Segoe UI, sans-serif" font-weight="800" fill="#0b5394">2</text>
+  <text x="342" y="336" text-anchor="middle" font-size="92" font-family="Segoe UI, sans-serif" font-weight="800" fill="#b51f30">1</text>
+</svg>

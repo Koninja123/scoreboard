@@ -1,0 +1,14 @@
+# Dev-tooling (de gehoste app blijft puur statisch)
+node_modules/
+package-lock.json
+.claude/
+
+# Ongebruikte bestanden — niet nodig in de live-app
+assets/smoke-test.png
+assets/smoke-test-expired.png
+assets/icon-192.svg
+assets/icon-512.svg
+
+# OS-rommel
+Thumbs.db
+.DS_Store
