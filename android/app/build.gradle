@@ -7,7 +7,7 @@ android {
         applicationId "com.koninja.scoreboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = System.getenv("BUILD_NUMBER")?.toIntOrNull() ?: 2
+        versionCode = (System.getenv("BUILD_NUMBER") ?: "2").toInteger()
         versionName "2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
