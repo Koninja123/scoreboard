@@ -48,9 +48,17 @@ button {
   flex-direction: row;
 }
 
+.board--swapped {
+  flex-direction: row-reverse;
+}
+
 @media (orientation: portrait) {
   .board {
     flex-direction: column;
+  }
+
+  .board--swapped {
+    flex-direction: column-reverse;
   }
 }
 

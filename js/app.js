@@ -22,6 +22,7 @@ const defaultState = {
   selectedMinutes: 15,
   period:       1,
   totalPeriods: 2,
+  swapped:      false,
 };
 
 const el = {
@@ -83,7 +84,11 @@ const timer = new CountdownTimer({
     triggerVibration();
     releaseWakeLock();
     setClockState("done");
-    el.status.textContent = "Tijd! Tik op de tijd om te stoppen";
+    const hasNext = state.totalPeriods > 1 && state.period < state.totalPeriods;
+    const unit = state.totalPeriods === 4 ? "kwart" : "helft";
+    el.status.textContent = hasNext
+      ? `Tijd! Tik op de tijd voor ${unit} ${state.period + 1}`
+      : "Tijd! Tik op de tijd om te stoppen";
   },
 });
 
@@ -111,7 +116,11 @@ function bindEvents() {
   el.undoBtn.addEventListener("click", undoScore);
 
   el.clockTime.addEventListener("click", () => {
-    if (completed) { resetClock(); return; }
+    if (completed) {
+      if (state.period < state.totalPeriods) nextPeriod();
+      else resetClock();
+      return;
+    }
     if (timer.isRunning) pauseClock(); else startClock();
   });
 
@@ -140,6 +149,7 @@ function bindEvents() {
     state.scores.blue = 0;
     state.scores.red  = 0;
     state.period      = 1;
+    state.swapped     = false;
     undoStack         = [];
     hideUndoBtn();
     resetClock();
@@ -221,6 +231,7 @@ function render() {
   el.minusButtons.forEach((btn) => {
     btn.disabled = state.scores[btn.dataset.team] === 0;
   });
+  el.board.classList.toggle("board--swapped", state.swapped);
   renderPeriodBadge();
   renderPeriodButtons();
 }
@@ -338,14 +349,13 @@ async function syncFromService() {
 }
 
 /* ---------- Perioden & kanten wisselen ---------- */
+// Wisselt alleen de schermpositie van de twee helften: elke ploeg houdt z'n
+// kleur, naam én score — alleen boven/onder verwisselt. Geen score-swap, dus
+// blijft "Blauw" altijd de blauwe ploeg (ook in de service en op het slotscherm).
 function swapSides() {
-  [state.teamBlueName, state.teamRedName] = [state.teamRedName, state.teamBlueName];
-  [state.scores.blue, state.scores.red]   = [state.scores.red, state.scores.blue];
-  undoStack = [];
-  hideUndoBtn();
+  state.swapped = !state.swapped;
   persistState();
   render();
-  updateServiceScores(state.scores.blue, state.scores.red);
 }
 
 function nextPeriod() {
@@ -469,6 +479,7 @@ function loadState() {
       },
       period:       Math.max(1, Number(p.period)       || 1),
       totalPeriods: [1, 2, 4].includes(Number(p.totalPeriods)) ? Number(p.totalPeriods) : 2,
+      swapped:      Boolean(p.swapped),
     };
   } catch {
     return structuredClone(defaultState);

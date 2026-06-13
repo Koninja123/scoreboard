@@ -24,8 +24,9 @@ class ScoreboardWidget : AppWidgetProvider() {
 
         for (id in ids) {
             val views = RemoteViews(context.packageName, R.layout.widget_scoreboard).apply {
-                setTextViewText(R.id.widget_score, "$blue  –  $red")
-                setTextViewText(R.id.widget_time,  time)
+                setTextViewText(R.id.widget_blue, "$blue")
+                setTextViewText(R.id.widget_red,  "$red")
+                setTextViewText(R.id.widget_time, time)
                 setOnClickPendingIntent(R.id.widget_root, openPi)
             }
             mgr.updateAppWidget(id, views)
