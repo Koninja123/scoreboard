@@ -21,7 +21,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
 
         <provider
@@ -31,11 +30,40 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths" />
         </provider>
-    </application>
 
-    <!-- Permissions -->
+        <!-- Foreground service: toont live-afteltimer + standknoppen op vergrendelscherm -->
+        <service
+            android:name=".ScoreboardService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <!-- BroadcastReceiver voor de notificatieknoppen (Blauw/Rood +1/-1) -->
+        <receiver
+            android:name=".ScoreboardReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.koninja.scoreboard.BLUE_PLUS" />
+                <action android:name="com.koninja.scoreboard.BLUE_MINUS" />
+                <action android:name="com.koninja.scoreboard.RED_PLUS" />
+                <action android:name="com.koninja.scoreboard.RED_MINUS" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Home-scherm widget -->
+        <receiver
+            android:name=".ScoreboardWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
+    </application>
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -43,4 +71,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 </manifest>

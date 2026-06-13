@@ -173,6 +173,16 @@ button {
   z-index: 10;
 }
 
+.clock__period {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  opacity: 0.65;
+  padding: 0 0.15rem 0 0.25rem;
+  text-transform: uppercase;
+}
+
 .clock__time {
   font-size: clamp(1.5rem, 5.2vmin, 2.3rem);
   font-weight: 800;
@@ -195,10 +205,7 @@ button {
   opacity: 0.8;
 }
 
-.clock__lock:active {
-  background: rgba(0, 0, 0, 0.06);
-}
-
+.clock__lock:active,
 .clock__gear:active {
   background: rgba(0, 0, 0, 0.06);
 }
@@ -217,14 +224,41 @@ button {
 }
 
 .clock[data-state="done"] .clock__time,
-.clock[data-state="done"] .clock__gear {
+.clock[data-state="done"] .clock__gear,
+.clock[data-state="done"] .clock__period {
   color: #fff;
+  opacity: 1;
 }
 
 @keyframes pill-flash {
-  50% {
-    background: #f1b500;
-  }
+  50% { background: #f1b500; }
+}
+
+/* ---------- Ongedaan-knop ---------- */
+.undo-btn {
+  position: fixed;
+  top: calc(var(--safe-top) + 4.2rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  background: rgba(16, 32, 51, 0.82);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.38rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+}
+
+.undo-btn[hidden] {
+  display: none;
+}
+
+.undo-btn:active {
+  background: rgba(11, 83, 148, 0.88);
 }
 
 /* ---------- Statusregel ---------- */
@@ -342,6 +376,10 @@ button {
   gap: 0.5rem;
 }
 
+.presets__row--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .preset {
   min-height: 3rem;
   border-radius: 12px;
@@ -407,7 +445,7 @@ button {
   filter: brightness(1.12);
 }
 
-/* ---------- Veld-slot (vergrendel-modus) ---------- */
+/* ---------- Veld-slot ---------- */
 .lock-overlay {
   position: fixed;
   inset: 0;

@@ -14,6 +14,8 @@ on:
       - "tools/copy-web.mjs"
       - "package.json"
       - ".github/workflows/android.yml"
+      - "android/app/src/main/**"
+      - "android/app/build.gradle"
 
 jobs:
   build:
@@ -45,17 +47,30 @@ jobs:
       - name: Capacitor synchroniseren
         run: npx cap sync android
 
-      - name: Debug-APK bouwen
+      - name: APK bouwen (release met signing, anders debug)
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/keystore.jks
+            ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk ../hockey-scoreboard.apk
+          else
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk ../hockey-scoreboard.apk
+          fi
 
       - name: APK uploaden (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: hockey-scoreboard-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: hockey-scoreboard.apk
           if-no-files-found: error
 
       - name: APK als release publiceren (vaste downloadlink)
@@ -63,7 +78,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk hockey-scoreboard.apk
           gh release upload android-latest hockey-scoreboard.apk --clobber \
             || gh release create android-latest hockey-scoreboard.apk \
                  --title "Hockey Scoreboard — Android" \

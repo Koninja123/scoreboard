@@ -16,29 +16,30 @@
 <body>
   <main class="board" id="board">
     <section class="team team--blue">
-      <button class="team__tap" type="button" data-team="blue" data-delta="1" aria-label="Doelpunt voor blauw team">
+      <button class="team__tap" type="button" data-team="blue" aria-label="Doelpunt voor blauw team">
         <span class="team__label">Blauw</span>
         <span class="team__name" id="blue-name">Blauw team</span>
         <span class="team__score" id="blue-score" aria-live="polite">0</span>
         <span class="team__hint">tik = +1</span>
       </button>
-      <button class="team__minus" type="button" data-team="blue" data-delta="-1" aria-label="Doelpunt eraf bij blauw team">&minus;1</button>
+      <button class="team__minus" type="button" data-team="blue" aria-label="Doelpunt eraf bij blauw team">&minus;1</button>
     </section>
 
     <section class="team team--red">
-      <button class="team__tap" type="button" data-team="red" data-delta="1" aria-label="Doelpunt voor rood team">
+      <button class="team__tap" type="button" data-team="red" aria-label="Doelpunt voor rood team">
         <span class="team__label">Rood</span>
         <span class="team__name" id="red-name">Rood team</span>
         <span class="team__score" id="red-score" aria-live="polite">0</span>
         <span class="team__hint">tik = +1</span>
       </button>
-      <button class="team__minus" type="button" data-team="red" data-delta="-1" aria-label="Doelpunt eraf bij rood team">&minus;1</button>
+      <button class="team__minus" type="button" data-team="red" aria-label="Doelpunt eraf bij rood team">&minus;1</button>
     </section>
 
     <div class="clock" id="clock" data-state="idle">
-      <button class="clock__lock" id="lock-btn" type="button" aria-label="Veld-modus: scherm vergrendelen tegen per ongeluk tikken">
+      <button class="clock__lock" id="lock-btn" type="button" aria-label="Veld-modus: scherm vergrendelen">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 1.7A4.3 4.3 0 0 0 7.7 6v3H6.5A1.8 1.8 0 0 0 4.7 10.8v8.4A1.8 1.8 0 0 0 6.5 21h11a1.8 1.8 0 0 0 1.8-1.8v-8.4A1.8 1.8 0 0 0 17.5 9h-1.2V6A4.3 4.3 0 0 0 12 1.7Zm2.3 7.3H9.7V6a2.3 2.3 0 0 1 4.6 0v3Z"/></svg>
       </button>
+      <span class="clock__period" id="period-badge" hidden>H1</span>
       <button class="clock__time" id="clock-time" type="button" aria-label="Start of pauzeer de wedstrijdklok">15:00</button>
       <button class="clock__gear" id="open-settings" type="button" aria-label="Instellingen openen">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -50,6 +51,10 @@
 
     <p class="status" id="status" aria-live="polite">Tik op de tijd om te starten</p>
   </main>
+
+  <button class="undo-btn" id="undo-btn" type="button" hidden aria-label="Laatste score ongedaan maken">
+    &#8617; Ongedaan
+  </button>
 
   <div class="lock-overlay" id="lock-overlay" hidden>
     <div class="lock-overlay__panel">
@@ -92,9 +97,20 @@
           </div>
         </fieldset>
 
+        <fieldset class="field presets">
+          <legend>Perioden</legend>
+          <div class="presets__row presets__row--3">
+            <button class="preset period-preset" type="button" data-periods="1">Geen</button>
+            <button class="preset period-preset" type="button" data-periods="2">Helften</button>
+            <button class="preset period-preset" type="button" data-periods="4">Kwarten</button>
+          </div>
+        </fieldset>
+
         <div class="sheet__actions">
           <button class="btn btn--ghost" id="test-alarm" type="button">Alarm testen</button>
           <button class="btn btn--ghost" id="reset-clock" type="button">Klok resetten</button>
+          <button class="btn btn--ghost" id="swap-sides" type="button">Wissel kanten</button>
+          <button class="btn btn--ghost" id="next-period" type="button" hidden>Volgende periode</button>
           <button class="btn btn--ghost" id="new-match" type="button">Nieuwe wedstrijd</button>
           <button class="btn btn--primary" type="submit">Opslaan &amp; sluiten</button>
         </div>
