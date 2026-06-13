@@ -1,10 +1,38 @@
 # Hockey Scoreboard - eenmalige keystore-generator
 # Voer dit eenmalig uit om een ondertekeningssleutel te maken voor de release-APK.
-# Vereist: Java (keytool) beschikbaar in PATH.
 
 $KeystoreFile = "hockey-scoreboard.keystore"
 $Alias        = "hockey"
 
+# keytool zoeken (PATH -> JAVA_HOME -> Android Studio JDK)
+function Find-Keytool {
+    $kt = Get-Command keytool -ErrorAction SilentlyContinue
+    if ($kt) { return $kt.Source }
+
+    $searchRoots = @(
+        $env:JAVA_HOME,
+        "C:\Program Files\Android\Android Studio\jbr",
+        "C:\Program Files\Android\Android Studio\jre"
+    )
+    foreach ($root in $searchRoots) {
+        if ($root -and (Test-Path "$root\bin\keytool.exe")) {
+            return "$root\bin\keytool.exe"
+        }
+    }
+    # Bredere zoekactie in Program Files
+    $hit = Get-ChildItem "C:\Program Files" -Recurse -Name "keytool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($hit) { return "C:\Program Files\$hit" }
+    return $null
+}
+
+$Keytool = Find-Keytool
+if (-not $Keytool) {
+    Write-Error "keytool niet gevonden. Installeer Java of Android Studio."
+    exit 1
+}
+Write-Host "Keytool gevonden: $Keytool" -ForegroundColor Gray
+
+Write-Host ""
 Write-Host "=== Hockey Scoreboard Keystore Generator ===" -ForegroundColor Cyan
 Write-Host "Bewaar de wachtwoorden goed - je hebt ze nodig om de app te updaten." -ForegroundColor Yellow
 Write-Host ""
@@ -12,19 +40,16 @@ Write-Host ""
 $StorePass = Read-Host "Keystore-wachtwoord (min 6 tekens)"
 $KeyPass   = Read-Host "Sleutelwachtwoord  (min 6 tekens, mag hetzelfde zijn)"
 
-$keytoolArgs = @(
-    "-genkey", "-v",
-    "-keystore", $KeystoreFile,
-    "-alias", $Alias,
-    "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
-    "-storepass", $StorePass,
-    "-keypass", $KeyPass,
-    "-dname", "CN=Hockey Scoreboard,OU=Koninja,O=Koninja,L=NL,S=NL,C=NL"
-)
-& keytool @keytoolArgs
+& $Keytool -genkey -v `
+    -keystore $KeystoreFile `
+    -alias $Alias `
+    -keyalg RSA -keysize 2048 -validity 10000 `
+    -storepass $StorePass `
+    -keypass   $KeyPass `
+    -dname "CN=Hockey Scoreboard,OU=Koninja,O=Koninja,L=NL,S=NL,C=NL"
 
 if (-not (Test-Path $KeystoreFile)) {
-    Write-Error "Keystore aanmaken mislukt. Controleer of keytool beschikbaar is (java in PATH)."
+    Write-Error "Keystore aanmaken mislukt."
     exit 1
 }
 
