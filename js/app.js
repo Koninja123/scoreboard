@@ -33,6 +33,9 @@ const el = {
   testAlarm: document.querySelector("#test-alarm"),
   resetClock: document.querySelector("#reset-clock"),
   newMatch: document.querySelector("#new-match"),
+  lockBtn: document.querySelector("#lock-btn"),
+  lockOverlay: document.querySelector("#lock-overlay"),
+  unlockBtn: document.querySelector("#unlock-btn"),
 };
 
 let state = loadState();
@@ -125,6 +128,12 @@ function bindEvents() {
     saveSettings();
     closeSettings();
   });
+
+  el.lockBtn.addEventListener("click", lockField);
+  el.unlockBtn.addEventListener("pointerdown", startUnlockHold);
+  el.unlockBtn.addEventListener("pointerup", cancelUnlockHold);
+  el.unlockBtn.addEventListener("pointerleave", cancelUnlockHold);
+  el.unlockBtn.addEventListener("pointercancel", cancelUnlockHold);
 
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
@@ -261,6 +270,32 @@ function syncPresets() {
 
 function sanitizeMinutes(value) {
   return Math.max(1, Math.min(120, Number.parseInt(value, 10) || 1));
+}
+
+/* ---------- Veld-slot (vergrendel-modus) ---------- */
+let unlockTimer = null;
+
+function lockField() {
+  el.lockOverlay.hidden = false;
+}
+
+function unlockField() {
+  cancelUnlockHold();
+  el.lockOverlay.hidden = true;
+}
+
+function startUnlockHold(event) {
+  event.preventDefault();
+  el.unlockBtn.classList.add("holding");
+  unlockTimer = window.setTimeout(unlockField, 1500);
+}
+
+function cancelUnlockHold() {
+  if (unlockTimer !== null) {
+    window.clearTimeout(unlockTimer);
+    unlockTimer = null;
+  }
+  el.unlockBtn.classList.remove("holding");
 }
 
 /* ---------- Audio helper ---------- */

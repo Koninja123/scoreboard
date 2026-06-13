@@ -1,4 +1,4 @@
-const CACHE_NAME = "hockey-scoreboard-v3";
+const CACHE_NAME = "hockey-scoreboard-v4";
 const APP_ASSETS = [
   "./",
   "./index.html",

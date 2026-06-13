@@ -36,6 +36,9 @@
     </section>
 
     <div class="clock" id="clock" data-state="idle">
+      <button class="clock__lock" id="lock-btn" type="button" aria-label="Veld-modus: scherm vergrendelen tegen per ongeluk tikken">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 1.7A4.3 4.3 0 0 0 7.7 6v3H6.5A1.8 1.8 0 0 0 4.7 10.8v8.4A1.8 1.8 0 0 0 6.5 21h11a1.8 1.8 0 0 0 1.8-1.8v-8.4A1.8 1.8 0 0 0 17.5 9h-1.2V6A4.3 4.3 0 0 0 12 1.7Zm2.3 7.3H9.7V6a2.3 2.3 0 0 1 4.6 0v3Z"/></svg>
+      </button>
       <button class="clock__time" id="clock-time" type="button" aria-label="Start of pauzeer de wedstrijdklok">15:00</button>
       <button class="clock__gear" id="open-settings" type="button" aria-label="Instellingen openen">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -47,6 +50,17 @@
 
     <p class="status" id="status" aria-live="polite">Tik op de tijd om te starten</p>
   </main>
+
+  <div class="lock-overlay" id="lock-overlay" hidden>
+    <div class="lock-overlay__panel">
+      <p class="lock-overlay__title">Veld-modus actief</p>
+      <button class="lock-overlay__unlock" id="unlock-btn" type="button" aria-label="Houd ingedrukt om te ontgrendelen">
+        <span class="lock-overlay__ring"></span>
+        <svg class="lock-overlay__icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 1.7A4.3 4.3 0 0 0 7.7 6v3H6.5A1.8 1.8 0 0 0 4.7 10.8v8.4A1.8 1.8 0 0 0 6.5 21h11a1.8 1.8 0 0 0 1.8-1.8v-8.4A1.8 1.8 0 0 0 17.5 9h-1.2V6A4.3 4.3 0 0 0 12 1.7Zm2.3 7.3H9.7V6a2.3 2.3 0 0 1 4.6 0v3Z"/></svg>
+      </button>
+      <p class="lock-overlay__hint">Houd het slot <strong>1,5 sec ingedrukt</strong> om te ontgrendelen</p>
+    </div>
+  </div>
 
   <div class="sheet" id="settings-sheet" hidden>
     <div class="sheet__backdrop" data-close></div>
