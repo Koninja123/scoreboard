@@ -1,7 +1,10 @@
-# Dev-tooling (de gehoste app blijft puur statisch)
+# Dev-tooling (de gehoste web-app blijft puur statisch)
 node_modules/
-package-lock.json
 .claude/
+
+# Capacitor build-output (wordt in de cloud-build gegenereerd)
+www/
+android/
 
 # Ongebruikte bestanden — niet nodig in de live-app
 assets/smoke-test.png

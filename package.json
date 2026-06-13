@@ -9,5 +9,11 @@
   },
   "devDependencies": {
     "sharp": "^0.35.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/local-notifications": "^8.2.0"
   }
 }

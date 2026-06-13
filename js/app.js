@@ -1,6 +1,7 @@
 import { CountdownTimer, formatTime } from "./timer.js";
 import { primeAlarm, scheduleAlarmIn, playAlarmNow, stopAlarm } from "./audio.js";
 import { requestWakeLock, releaseWakeLock } from "./wakelock.js";
+import { isNativeApp, ensureNotificationPermission, scheduleEndAlarm, cancelEndAlarm } from "./native.js";
 
 const STORAGE_KEY = "hockey-scoreboard-state";
 
@@ -51,7 +52,7 @@ const timer = new CountdownTimer({
     completed = true;
     // Geluid is al ingepland op de audio-klok bij de start. Lukte dat niet,
     // dan spelen we het alarm nu alsnog (best effort, app op de voorgrond).
-    if (!alarmScheduled) {
+    if (!isNativeApp() && !alarmScheduled) {
       playAlarmNow();
     }
     alarmScheduled = false;
@@ -168,7 +169,19 @@ function startClock() {
   completed = false;
   timer.start();
   requestWakeLock();
-  // Audio mag de klok nooit blokkeren: prime + plan het alarm niet-blokkerend in.
+
+  if (isNativeApp()) {
+    // Android-app: plan een lokale notificatie zodat het alarm ook met
+    // het scherm op slot afgaat.
+    ensureNotificationPermission().then((granted) => {
+      if (granted) {
+        scheduleEndAlarm(timer.remainingMs);
+      }
+    });
+    return;
+  }
+
+  // PWA: audio mag de klok nooit blokkeren: prime + plan het alarm niet-blokkerend in.
   primeAlarm()
     .then(() => {
       alarmScheduled = scheduleAlarmIn(timer.remainingMs / 1000);
@@ -182,6 +195,7 @@ function startClock() {
 function pauseClock() {
   timer.pause();
   stopAlarm();
+  cancelEndAlarm();
   alarmScheduled = false;
   releaseWakeLock();
 }
@@ -189,6 +203,7 @@ function pauseClock() {
 function resetClock() {
   completed = false;
   stopAlarm();
+  cancelEndAlarm();
   alarmScheduled = false;
   timer.reset();
   releaseWakeLock();
@@ -244,6 +259,7 @@ function applyMinutes(value) {
   state.selectedMinutes = sanitizeMinutes(value);
   completed = false;
   stopAlarm();
+  cancelEndAlarm();
   alarmScheduled = false;
   timer.setDurationMinutes(state.selectedMinutes);
   releaseWakeLock();
@@ -334,7 +350,7 @@ function loadState() {
 }
 
 async function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) {
+  if (isNativeApp() || !("serviceWorker" in navigator)) {
     return;
   }
   try {
