@@ -1,0 +1,12 @@
+# Shell-scripts (incl. de Gradle-wrapper) altijd LF, anders faalt de Linux CI-build
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows-batch CRLF
+*.bat text eol=crlf
+
+# Binaire bestanden niet als tekst behandelen
+*.wav binary
+*.png binary
+*.jar binary
+*.keystore binary

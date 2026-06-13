@@ -1,7 +1,7 @@
 import { CountdownTimer, formatTime } from "./timer.js";
 import { primeAlarm, scheduleAlarmIn, playAlarmNow, stopAlarm } from "./audio.js";
 import { requestWakeLock, releaseWakeLock } from "./wakelock.js";
-import { isNativeApp, ensureNotificationPermission, scheduleEndAlarm, cancelEndAlarm } from "./native.js";
+import { isNativeApp, initNativeNotifications, ensureNotificationPermission, scheduleEndAlarm, cancelEndAlarm } from "./native.js";
 
 const STORAGE_KEY = "hockey-scoreboard-state";
 
@@ -72,6 +72,7 @@ function initialize() {
   timer.setDurationMinutes(state.selectedMinutes);
   setClockState("idle");
   registerServiceWorker();
+  initNativeNotifications();
 }
 
 function bindEvents() {
@@ -176,6 +177,13 @@ function startClock() {
     ensureNotificationPermission().then((granted) => {
       if (granted) {
         scheduleEndAlarm(timer.remainingMs);
+      } else {
+        // Geen meldingsrechten: val terug op WebAudio (alleen hoorbaar met scherm aan).
+        primeAlarm()
+          .then(() => {
+            alarmScheduled = scheduleAlarmIn(timer.remainingMs / 1000);
+          })
+          .catch(() => {});
       }
     });
     return;

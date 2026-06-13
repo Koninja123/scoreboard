@@ -2,9 +2,11 @@
 node_modules/
 .claude/
 
-# Capacitor build-output (wordt in de cloud-build gegenereerd)
+# Capacitor: www/ en de gegenereerde android-web-assets komen uit de build
 www/
-android/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
 
 # Ongebruikte bestanden — niet nodig in de live-app
 assets/smoke-test.png

@@ -2,6 +2,7 @@
 // in de Android-app plant het een lokale notificatie als eindtijd-alarm,
 // zodat het geluid ook afgaat met het scherm op slot.
 const NOTIF_ID = 1001;
+const CHANNEL_ID = "alarm";
 
 function getPlugin() {
   if (!isNativeApp()) {
@@ -33,6 +34,26 @@ export async function ensureNotificationPermission() {
   }
 }
 
+export async function initNativeNotifications() {
+  const ln = getPlugin();
+  if (!ln) {
+    return;
+  }
+  try {
+    await ln.createChannel({
+      id: CHANNEL_ID,
+      name: "Wedstrijdalarm",
+      description: "Alarm wanneer de wedstrijdtijd is verstreken",
+      importance: 5,
+      sound: "alarm_buzzer.wav",
+      vibration: true,
+      visibility: 1,
+    });
+  } catch {
+    // negeren
+  }
+}
+
 export async function scheduleEndAlarm(remainingMs) {
   const ln = getPlugin();
   if (!ln) {
@@ -46,6 +67,8 @@ export async function scheduleEndAlarm(remainingMs) {
           id: NOTIF_ID,
           title: "Tijd!",
           body: "De wedstrijdtijd is verstreken.",
+          channelId: CHANNEL_ID,
+          sound: "alarm_buzzer.wav",
           schedule: { at: new Date(Date.now() + remainingMs), allowWhileIdle: true },
         },
       ],

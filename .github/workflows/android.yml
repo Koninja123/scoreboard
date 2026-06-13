@@ -40,9 +40,6 @@ jobs:
       - name: Web-assets bouwen (www/)
         run: node tools/copy-web.mjs
 
-      - name: Android-platform toevoegen
-        run: npx cap add android
-
       - name: Capacitor synchroniseren
         run: npx cap sync android
 
