@@ -6,19 +6,22 @@ $KeystoreFile = "hockey-scoreboard.keystore"
 $Alias        = "hockey"
 
 Write-Host "=== Hockey Scoreboard Keystore Generator ===" -ForegroundColor Cyan
-Write-Host "Bewaar de wachtwoorden goed — je hebt ze nodig om de app te updaten." -ForegroundColor Yellow
+Write-Host "Bewaar de wachtwoorden goed - je hebt ze nodig om de app te updaten." -ForegroundColor Yellow
 Write-Host ""
 
 $StorePass = Read-Host "Keystore-wachtwoord (min 6 tekens)"
 $KeyPass   = Read-Host "Sleutelwachtwoord  (min 6 tekens, mag hetzelfde zijn)"
 
-keytool -genkey -v `
-    -keystore $KeystoreFile `
-    -alias $Alias `
-    -keyalg RSA -keysize 2048 -validity 10000 `
-    -storepass $StorePass `
-    -keypass   $KeyPass `
-    -dname "CN=Hockey Scoreboard,OU=Koninja,O=Koninja,L=NL,S=NL,C=NL"
+$keytoolArgs = @(
+    "-genkey", "-v",
+    "-keystore", $KeystoreFile,
+    "-alias", $Alias,
+    "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
+    "-storepass", $StorePass,
+    "-keypass", $KeyPass,
+    "-dname", "CN=Hockey Scoreboard,OU=Koninja,O=Koninja,L=NL,S=NL,C=NL"
+)
+& keytool @keytoolArgs
 
 if (-not (Test-Path $KeystoreFile)) {
     Write-Error "Keystore aanmaken mislukt. Controleer of keytool beschikbaar is (java in PATH)."
@@ -38,4 +41,4 @@ Write-Host "KEYSTORE_PASS = $StorePass" -ForegroundColor Yellow
 Write-Host "KEY_ALIAS     = $Alias"     -ForegroundColor Yellow
 Write-Host "KEY_PASS      = $KeyPass"   -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Keystore opgeslagen als: $KeystoreFile  (NIET committen aan git!)" -ForegroundColor Red
+Write-Host "Keystore opgeslagen als: $KeystoreFile (NIET committen aan git)" -ForegroundColor Red
