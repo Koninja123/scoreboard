@@ -105,7 +105,10 @@ class ScoreboardService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var wakeLock: PowerManager.WakeLock? = null
-    private val alarmListener: (Boolean) -> Unit = { active -> if (!active) handler.post { onAlarmEnded() } }
+    private val alarmListener: (Boolean) -> Unit = { active ->
+        if (!active) handler.post { onAlarmEnded() }
+        Unit
+    }
 
     private val tick = object : Runnable {
         override fun run() {

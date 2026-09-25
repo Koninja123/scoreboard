@@ -22,6 +22,7 @@ class ScoreboardPlugin : Plugin() {
     private val alarmListener: (Boolean) -> Unit = { active ->
         notifyListeners("alarmState", JSObject().put("active", active))
         if (!active) activity?.runOnUiThread { setShowOverLockScreen(false) }
+        Unit
     }
 
     override fun load() {
