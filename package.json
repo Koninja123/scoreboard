@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Dev-tooling voor het Hockey Scoreboard (icoon-generatie). De app zelf is puur statisch en heeft geen runtime-dependencies.",
+  "description": "Dev-tooling voor het Hockey Scoreboard (iconen, geluiden, tests en de Android-build).",
   "scripts": {
-    "icons": "node tools/generate-icons.mjs"
+    "icons": "node tools/generate-icons.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.1"

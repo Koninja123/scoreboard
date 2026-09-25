@@ -13,6 +13,7 @@ on:
       - "capacitor.config.json"
       - "tools/copy-web.mjs"
       - "package.json"
+      - "tests/**"
       - ".github/workflows/android.yml"
       - "android/app/src/main/**"
       - "android/app/build.gradle"
@@ -37,9 +38,15 @@ jobs:
           java-version: "21"
 
       - uses: android-actions/setup-android@v3
+        with:
+          # Standaard wil de action ook "tools" installeren; dat pakket bestaat niet meer.
+          packages: platform-tools
 
       - name: Dependencies installeren
         run: npm install
+
+      - name: Unit-tests
+        run: npm test
 
       - name: Web-assets bouwen (www/)
         run: node tools/copy-web.mjs
