@@ -1,30 +1,35 @@
+// Web-audio voor de PWA (iPhone/browser). In de Android-app speelt de native
+// kant het alarm af. Let op: in de browser klinkt dit alleen zolang de app open
+// is en het scherm aan staat.
 let audioContext = null;
-let scheduledNodes = [];
+let alarmNodes = [];
+let warnNodes = [];
+let alarmWindow = null; // { start, end } in audio-klok seconden
 
 function getAudioContext() {
   if (!audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) {
-      return null;
-    }
+    if (!AudioContextClass) return null;
     audioContext = new AudioContextClass();
   }
   return audioContext;
 }
 
 export async function primeAlarm() {
+  // iPhone (Safari 17+): speel als "media" af, zodat de stil-schakelaar het
+  // alarm niet dempt.
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
+  } catch {
+    // niet ondersteund
+  }
   const context = getAudioContext();
-  if (!context) {
-    throw new Error("AudioContext niet beschikbaar");
-  }
-  if (context.state === "suspended") {
-    await context.resume();
-  }
+  if (!context) throw new Error("AudioContext niet beschikbaar");
+  if (context.state === "suspended") await context.resume();
   return true;
 }
 
-// Eén korte felle piep, ingepland op een absoluut tijdstip van de audio-klok.
-function scheduleBeep(context, startAt, frequency, duration, peak) {
+function scheduleBeep(context, list, startAt, frequency, duration, peak) {
   const oscillator = context.createOscillator();
   const gainNode = context.createGain();
 
@@ -44,54 +49,14 @@ function scheduleBeep(context, startAt, frequency, duration, peak) {
     gainNode.disconnect();
   };
 
-  scheduledNodes.push(oscillator, gainNode);
+  list.push(oscillator, gainNode);
 }
 
-// Bouwt een lang, dringend alarm (groepjes van 3 piepen) vanaf een absoluut tijdstip.
-function buildAlarm(context, startAt) {
-  const groups = 16; // ~19 seconden aanhoudend alarm
-  const beepDuration = 0.16;
-  const beepGap = 0.09;
-  const groupGap = 0.45;
-  const peak = 0.45; // fors luider dan voorheen (was 0.18)
-
-  let cursor = startAt;
-  for (let group = 0; group < groups; group += 1) {
-    for (let beep = 0; beep < 3; beep += 1) {
-      const frequency = beep === 1 ? 1319 : 988; // E6 / B5, snijdt door veldrumoer
-      scheduleBeep(context, cursor, frequency, beepDuration, peak);
-      cursor += beepDuration + beepGap;
-    }
-    cursor += groupGap;
-  }
-}
-
-// Plan het alarm in over `seconds` seconden (0 = nu). Geeft true bij succes.
-export function scheduleAlarmIn(seconds) {
-  const context = getAudioContext();
-  if (!context) {
-    return false;
-  }
-  if (context.state === "suspended") {
-    context.resume().catch(() => {});
-  }
-  stopAlarm();
-  const startAt = context.currentTime + Math.max(0, seconds);
-  buildAlarm(context, startAt);
-  return true;
-}
-
-export function playAlarmNow() {
-  return scheduleAlarmIn(0);
-}
-
-export function stopAlarm() {
+function stopNodes(list) {
   const now = audioContext ? audioContext.currentTime : 0;
-  for (const node of scheduledNodes) {
+  for (const node of list) {
     try {
-      if (typeof node.stop === "function") {
-        node.stop(now);
-      }
+      if (typeof node.stop === "function") node.stop(now);
     } catch {
       // al gestopt
     }
@@ -101,5 +66,67 @@ export function stopAlarm() {
       // al losgekoppeld
     }
   }
-  scheduledNodes = [];
+  list.length = 0;
+}
+
+function contextOrNull() {
+  const context = getAudioContext();
+  if (!context) return null;
+  if (context.state === "suspended") context.resume().catch(() => {});
+  return context;
+}
+
+// Lang, dringend alarm (groepjes van 3 piepen, ~55 s) over `seconds` seconden.
+export function scheduleAlarmIn(seconds) {
+  const context = contextOrNull();
+  if (!context) return false;
+  stopNodes(alarmNodes);
+  const startAt = context.currentTime + Math.max(0, seconds);
+  const groups = 46;
+  const beepDuration = 0.16;
+  const beepGap = 0.09;
+  const groupGap = 0.45;
+
+  let cursor = startAt;
+  for (let group = 0; group < groups; group += 1) {
+    for (let beep = 0; beep < 3; beep += 1) {
+      const frequency = beep === 1 ? 1319 : 988; // E6 / B5, snijdt door veldrumoer
+      scheduleBeep(context, alarmNodes, cursor, frequency, beepDuration, 0.45);
+      cursor += beepDuration + beepGap;
+    }
+    cursor += groupGap;
+  }
+  alarmWindow = { start: startAt, end: cursor };
+  return true;
+}
+
+// Korte dubbele piep (1 minuut resterend) over `seconds` seconden.
+export function scheduleWarningIn(seconds) {
+  const context = contextOrNull();
+  if (!context) return false;
+  stopNodes(warnNodes);
+  const startAt = context.currentTime + Math.max(0, seconds);
+  scheduleBeep(context, warnNodes, startAt, 1175, 0.25, 0.4);
+  scheduleBeep(context, warnNodes, startAt + 0.4, 1568, 0.25, 0.4);
+  return true;
+}
+
+export function playAlarmNow() {
+  return scheduleAlarmIn(0);
+}
+
+export function isAlarmPlaying() {
+  if (!audioContext || !alarmWindow) return false;
+  const t = audioContext.currentTime;
+  return t >= alarmWindow.start && t < alarmWindow.end;
+}
+
+export function stopAlarm() {
+  stopNodes(alarmNodes);
+  alarmWindow = null;
+}
+
+export function stopAll() {
+  stopAlarm();
+  stopNodes(warnNodes);
 }

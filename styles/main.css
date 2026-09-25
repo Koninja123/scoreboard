@@ -80,6 +80,7 @@ button {
 }
 
 .team__tap {
+  position: relative;
   flex: 1;
   width: 100%;
   display: flex;
@@ -92,9 +93,25 @@ button {
   transition: filter 120ms ease, transform 120ms ease;
 }
 
-.team__tap:active {
-  filter: brightness(1.12);
-  transform: scale(0.995);
+.team__tap > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Vasthouden: het vlak vult zich van onder naar boven */
+.team__tap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  pointer-events: none;
+}
+
+.team__tap.holding::after {
+  transform: scaleY(1);
+  transition: transform var(--hold-ms, 600ms) linear;
 }
 
 .team__label {
@@ -147,8 +164,24 @@ button {
   transition: opacity 140ms ease, transform 120ms ease;
 }
 
-.team__minus:active {
-  transform: scale(0.92);
+.team__minus.holding,
+.clock__time.holding {
+  background-image: linear-gradient(rgba(241, 181, 0, 0.55), rgba(241, 181, 0, 0.55));
+  background-size: 100% 100%;
+  transition: background-size var(--hold-ms, 600ms) linear;
+}
+
+.team__minus,
+.clock__time {
+  background-image: linear-gradient(rgba(241, 181, 0, 0.55), rgba(241, 181, 0, 0.55));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 100%;
+  touch-action: none;
+}
+
+.team__tap {
+  touch-action: none;
 }
 
 .team--blue .team__minus {
@@ -192,6 +225,7 @@ button {
 }
 
 .clock__time {
+  border-radius: 999px;
   font-size: clamp(1.5rem, 5.2vmin, 2.3rem);
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -443,6 +477,18 @@ button {
   background: rgba(16, 32, 51, 0.14);
 }
 
+.btn--wide {
+  grid-column: 1 / -1;
+}
+
+.btn--warn {
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  background: #fff4d1;
+  color: #6b4a00;
+  border: 1px solid #f1b500;
+}
+
 .btn--primary {
   grid-column: 1 / -1;
   background: var(--ink);
@@ -539,4 +585,198 @@ button {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ---------- Alarm-stop ---------- */
+.alarm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: rgba(181, 31, 48, 0.9);
+  animation: alarm-flash 0.7s steps(1, end) infinite;
+}
+
+.alarm-overlay[hidden] {
+  display: none;
+}
+
+@keyframes alarm-flash {
+  50% { background: rgba(160, 110, 0, 0.92); }
+}
+
+.alarm-overlay__title {
+  margin: 0;
+  font-size: clamp(3rem, 16vmin, 8rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.alarm-overlay__stop {
+  min-width: min(80vw, 22rem);
+  min-height: 5.5rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--red-1);
+  font-size: clamp(1.4rem, 6vmin, 2.2rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Schakelaars ---------- */
+.toggles {
+  gap: 0.55rem;
+}
+
+.toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(16, 32, 51, 0.05);
+}
+
+.toggle[hidden] {
+  display: none;
+}
+
+.toggle input {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--blue-1);
+}
+
+.toggle span {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+}
+
+.toggle small {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* ---------- Uitslagen ---------- */
+.results {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.results__empty {
+  margin: 0.5rem 0 1rem;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.results__day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+}
+
+.results__day h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.results__share {
+  min-height: 2.4rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.result {
+  border-radius: 12px;
+  background: rgba(16, 32, 51, 0.05);
+}
+
+.result__row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  color: var(--ink);
+}
+
+.result__time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+  font-size: 0.9rem;
+}
+
+.result__teams {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.result__score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+
+.result__note {
+  grid-column: 2 / -1;
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+
+.result__edit {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.result__scores {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.result__edit input {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 24, 40, 0.16);
+  background: #fff;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.result__scores input {
+  text-align: center;
+  font-weight: 800;
+}
+
+.result__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.result__actions .btn--primary {
+  grid-column: auto;
 }

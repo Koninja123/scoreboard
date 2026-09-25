@@ -1,19 +1,5 @@
-// Native (Capacitor) integratie. In de gewone PWA doet dit niets;
-// in de Android-app plant het een lokale notificatie als eindtijd-alarm
-// en beheert het een foreground-service voor vergrendelschermweergave.
-
-const NOTIF_ID   = 1001;
-const CHANNEL_ID = "alarm";
-
-function getLN() {
-  if (!isNativeApp()) return null;
-  return window.Capacitor?.Plugins?.LocalNotifications ?? null;
-}
-
-function getSB() {
-  if (!isNativeApp()) return null;
-  return window.Capacitor?.Plugins?.Scoreboard ?? null;
-}
+// Brug naar de Android-app (Capacitor-plugin "Scoreboard"). In de PWA doen
+// deze functies niets; daar valt de app terug op web-audio en localStorage.
 
 export function isNativeApp() {
   return !!(
@@ -23,10 +9,27 @@ export function isNativeApp() {
   );
 }
 
+function plugin(name) {
+  if (!isNativeApp()) return null;
+  return window.Capacitor?.Plugins?.[name] ?? null;
+}
+
+async function call(method, args) {
+  const sb = plugin("Scoreboard");
+  if (!sb || typeof sb[method] !== "function") return null;
+  try {
+    return await sb[method](args);
+  } catch {
+    return null;
+  }
+}
+
 export async function ensureNotificationPermission() {
-  const ln = getLN();
+  const ln = plugin("LocalNotifications");
   if (!ln) return false;
   try {
+    const current = await ln.checkPermissions();
+    if (current?.display === "granted") return true;
     const r = await ln.requestPermissions();
     return r?.display === "granted";
   } catch {
@@ -34,95 +37,58 @@ export async function ensureNotificationPermission() {
   }
 }
 
-export async function initNativeNotifications() {
-  const ln = getLN();
-  if (!ln) return;
+export async function loadNativeState() {
+  const r = await call("loadState");
+  return r?.json ?? null;
+}
+
+export function saveNativeState(json) {
+  return call("saveState", { json });
+}
+
+export function setNativeClock(payload) {
+  return call("setClock", payload);
+}
+
+export function stopNativeAlarm() {
+  return call("stopAlarm");
+}
+
+export async function isNativeAlarmActive() {
+  const r = await call("getAlarmState");
+  return Boolean(r?.active);
+}
+
+export function testNativeAlarm() {
+  return call("testAlarm");
+}
+
+export function testNativeWarning() {
+  return call("testWarning");
+}
+
+export function setFieldMode({ keepAwake, proximity }) {
+  return call("setFieldMode", { keepAwake, proximity });
+}
+
+export async function getCapabilities() {
+  return (await call("getCapabilities")) ?? {};
+}
+
+export function requestBatteryExemption() {
+  return call("requestBatteryExemption");
+}
+
+export function shareNative(text) {
+  return call("share", { text, title: "Uitslagen delen" });
+}
+
+export function onAlarmState(callback) {
+  const sb = plugin("Scoreboard");
+  if (!sb || typeof sb.addListener !== "function") return;
   try {
-    // ScoreboardPlugin.load() maakt dit kanaal al met USAGE_ALARM;
-    // deze aanroep is een no-op als het kanaal al bestaat.
-    await ln.createChannel({
-      id: CHANNEL_ID,
-      name: "Wedstrijdalarm",
-      description: "Alarm wanneer de wedstrijdtijd is verstreken",
-      importance: 5,
-      sound: "alarm_buzzer.wav",
-      vibration: true,
-      visibility: 1,
-    });
+    sb.addListener("alarmState", (data) => callback(Boolean(data?.active)));
   } catch {
     // negeren
-  }
-}
-
-export async function scheduleEndAlarm(remainingMs) {
-  const ln = getLN();
-  if (!ln) return false;
-  try {
-    await ln.cancel({ notifications: [{ id: NOTIF_ID }] });
-    await ln.schedule({
-      notifications: [{
-        id: NOTIF_ID,
-        title: "Tijd!",
-        body: "De wedstrijdtijd is verstreken.",
-        channelId: CHANNEL_ID,
-        sound: "alarm_buzzer.wav",
-        schedule: { at: new Date(Date.now() + remainingMs), allowWhileIdle: true },
-      }],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function cancelEndAlarm() {
-  const ln = getLN();
-  if (!ln) return;
-  try {
-    await ln.cancel({ notifications: [{ id: NOTIF_ID }] });
-  } catch {
-    // negeren
-  }
-}
-
-/* ---------- Foreground-service brug ---------- */
-
-export async function startForegroundService(endTimeMs, scoreBlue, scoreRed) {
-  const sb = getSB();
-  if (!sb) return;
-  try {
-    await sb.startService({ endTimeMs: Math.floor(endTimeMs), scoreBlue, scoreRed });
-  } catch {
-    // negeren
-  }
-}
-
-export async function stopForegroundService() {
-  const sb = getSB();
-  if (!sb) return;
-  try {
-    await sb.stopService();
-  } catch {
-    // negeren
-  }
-}
-
-export async function updateServiceScores(scoreBlue, scoreRed) {
-  const sb = getSB();
-  if (!sb) return;
-  try {
-    await sb.updateScores({ scoreBlue, scoreRed });
-  } catch {
-    // negeren
-  }
-}
-
-export async function getServiceState() {
-  const sb = getSB();
-  if (!sb) return null;
-  try {
-    return await sb.getState();
-  } catch {
-    return null;
   }
 }

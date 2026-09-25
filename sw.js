@@ -1,4 +1,4 @@
-const CACHE_NAME = "hockey-scoreboard-v8";
+const CACHE_NAME = "hockey-scoreboard-v9";
 const APP_ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,9 @@ const APP_ASSETS = [
   "./js/audio.js",
   "./js/wakelock.js",
   "./js/native.js",
+  "./js/store.js",
+  "./js/history.js",
+  "./js/hold.js",
   "./manifest.webmanifest",
   "./assets/icons/icon-192.svg",
   "./assets/icons/icon-180.png",

@@ -16,23 +16,23 @@
 <body>
   <main class="board" id="board">
     <section class="team team--blue">
-      <button class="team__tap" type="button" data-team="blue" aria-label="Doelpunt voor blauw team">
+      <button class="team__tap" type="button" data-team="blue" aria-label="Doelpunt voor blauw team (vasthouden)">
         <span class="team__label">Blauw</span>
         <span class="team__name" id="blue-name">Blauw team</span>
         <span class="team__score" id="blue-score" aria-live="polite">0</span>
-        <span class="team__hint">tik = +1</span>
+        <span class="team__hint">houd vast = +1</span>
       </button>
-      <button class="team__minus" type="button" data-team="blue" aria-label="Doelpunt eraf bij blauw team">&minus;1</button>
+      <button class="team__minus" type="button" data-team="blue" aria-label="Doelpunt eraf bij blauw team (vasthouden)">&minus;1</button>
     </section>
 
     <section class="team team--red">
-      <button class="team__tap" type="button" data-team="red" aria-label="Doelpunt voor rood team">
+      <button class="team__tap" type="button" data-team="red" aria-label="Doelpunt voor rood team (vasthouden)">
         <span class="team__label">Rood</span>
         <span class="team__name" id="red-name">Rood team</span>
         <span class="team__score" id="red-score" aria-live="polite">0</span>
-        <span class="team__hint">tik = +1</span>
+        <span class="team__hint">houd vast = +1</span>
       </button>
-      <button class="team__minus" type="button" data-team="red" aria-label="Doelpunt eraf bij rood team">&minus;1</button>
+      <button class="team__minus" type="button" data-team="red" aria-label="Doelpunt eraf bij rood team (vasthouden)">&minus;1</button>
     </section>
 
     <div class="clock" id="clock" data-state="idle">
@@ -40,7 +40,7 @@
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 1.7A4.3 4.3 0 0 0 7.7 6v3H6.5A1.8 1.8 0 0 0 4.7 10.8v8.4A1.8 1.8 0 0 0 6.5 21h11a1.8 1.8 0 0 0 1.8-1.8v-8.4A1.8 1.8 0 0 0 17.5 9h-1.2V6A4.3 4.3 0 0 0 12 1.7Zm2.3 7.3H9.7V6a2.3 2.3 0 0 1 4.6 0v3Z"/></svg>
       </button>
       <span class="clock__period" id="period-badge" hidden>H1</span>
-      <button class="clock__time" id="clock-time" type="button" aria-label="Start of pauzeer de wedstrijdklok">15:00</button>
+      <button class="clock__time" id="clock-time" type="button" aria-label="Tik om te starten, houd vast om te pauzeren">15:00</button>
       <button class="clock__gear" id="open-settings" type="button" aria-label="Instellingen openen">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
           <path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/>
@@ -67,6 +67,11 @@
     </div>
   </div>
 
+  <div class="alarm-overlay" id="alarm-overlay" hidden>
+    <p class="alarm-overlay__title">Tijd!</p>
+    <button class="alarm-overlay__stop" id="alarm-stop" type="button">Stop alarm</button>
+  </div>
+
   <div class="sheet" id="settings-sheet" hidden>
     <div class="sheet__backdrop" data-close></div>
     <section class="sheet__panel" role="dialog" aria-modal="true" aria-label="Instellingen">
@@ -78,12 +83,13 @@
       <form id="settings-form" class="sheet__form">
         <label class="field">
           <span>Blauw team</span>
-          <input id="blue-name-input" type="text" maxlength="20" placeholder="Blauw team" autocomplete="off">
+          <input id="blue-name-input" type="text" maxlength="20" placeholder="Blauw team" autocomplete="off" list="team-suggestions">
         </label>
         <label class="field">
           <span>Rood team</span>
-          <input id="red-name-input" type="text" maxlength="20" placeholder="Rood team" autocomplete="off">
+          <input id="red-name-input" type="text" maxlength="20" placeholder="Rood team" autocomplete="off" list="team-suggestions">
         </label>
+        <datalist id="team-suggestions"></datalist>
 
         <fieldset class="field presets">
           <legend>Speeltijd (minuten)</legend>
@@ -106,8 +112,28 @@
           </div>
         </fieldset>
 
+        <fieldset class="field toggles">
+          <legend>Veld-opties</legend>
+          <label class="toggle">
+            <input type="checkbox" id="opt-warn">
+            <span><strong>Piep bij 1 minuut</strong><small>Korte dubbele piep als er nog 1 minuut te gaan is</small></span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="opt-autolock">
+            <span><strong>Automatisch vergrendelen</strong><small>Na 10 sec zonder aanraking terwijl de klok loopt</small></span>
+          </label>
+          <label class="toggle" id="opt-pocket-row" hidden>
+            <input type="checkbox" id="opt-pocket">
+            <span><strong>Zakmodus</strong><small>Scherm uit zodra de telefoon bedekt is (nabijheidssensor)</small></span>
+          </label>
+        </fieldset>
+
+        <button class="btn btn--warn" id="battery-btn" type="button" hidden>Batterijbeperking uitzetten (aanbevolen voor het alarm)</button>
+
         <div class="sheet__actions">
+          <button class="btn btn--ghost btn--wide" id="open-results" type="button">Uitslagen</button>
           <button class="btn btn--ghost" id="test-alarm" type="button">Alarm testen</button>
+          <button class="btn btn--ghost" id="test-warn" type="button">Piep testen</button>
           <button class="btn btn--ghost" id="reset-clock" type="button">Klok resetten</button>
           <button class="btn btn--ghost" id="swap-sides" type="button">Wissel kanten</button>
           <button class="btn btn--ghost" id="next-period" type="button" hidden>Volgende periode</button>
@@ -115,6 +141,20 @@
           <button class="btn btn--primary" type="submit">Opslaan &amp; sluiten</button>
         </div>
       </form>
+    </section>
+  </div>
+
+  <div class="sheet" id="results-sheet" hidden>
+    <div class="sheet__backdrop" data-close></div>
+    <section class="sheet__panel" role="dialog" aria-modal="true" aria-label="Uitslagen">
+      <header class="sheet__head">
+        <h2>Uitslagen</h2>
+        <button class="sheet__close" id="close-results" type="button" aria-label="Sluiten">&times;</button>
+      </header>
+      <div class="results" id="results-list"></div>
+      <div class="sheet__actions">
+        <button class="btn btn--ghost btn--wide" id="results-clear" type="button">Alle uitslagen wissen</button>
+      </div>
     </section>
   </div>
 
