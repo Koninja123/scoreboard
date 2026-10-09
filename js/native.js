@@ -83,6 +83,16 @@ export function shareNative(text) {
   return call("share", { text, title: "Uitslagen delen" });
 }
 
+export function onProximity(callback) {
+  const sb = plugin("Scoreboard");
+  if (!sb || typeof sb.addListener !== "function") return;
+  try {
+    sb.addListener("proximity", (data) => callback(Boolean(data?.near)));
+  } catch {
+    // negeren
+  }
+}
+
 export function onAlarmState(callback) {
   const sb = plugin("Scoreboard");
   if (!sb || typeof sb.addListener !== "function") return;

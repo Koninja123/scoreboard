@@ -2,6 +2,7 @@ package com.koninja.scoreboard
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -12,6 +13,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import com.getcapacitor.*
 import com.getcapacitor.annotation.CapacitorPlugin
@@ -25,28 +28,25 @@ class ScoreboardPlugin : Plugin() {
     private var proximityLock: PowerManager.WakeLock? = null
     private var proximityWatching = false
     private val handler = Handler(Looper.getMainLooper())
-    private val screenOffWhenCovered = Runnable { acquireProximity() }
-    private val screenOnWhenUncovered = Runnable { releaseProximity() }
+    private var pocketView: View? = null
+    private var lastNear: Boolean? = null
+    private val pocketOn = Runnable { setPocketScreen(true) }
 
     // Eigen sensor-luisteraar met vertraging: een hand die even over de
     // bovenkant gaat (bijv. de tijd vasthouden om te pauzeren) bedekt de
-    // sensor ook; pas na COVER_DELAY_MS aaneengesloten bedekt gaat het scherm uit.
+    // sensor ook; pas na COVER_DELAY_MS aaneengesloten bedekt gaat het scherm
+    // "uit": een zwart vlak dat alle aanrakingen blokkeert + (waar het
+    // toestel dat ondersteunt) echt scherm-uit via de proximity-wakelock.
     private val proximityListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             val near = event.values[0] < minOf(event.sensor.maximumRange, 5f)
-            if (near) {
-                handler.removeCallbacks(screenOnWhenUncovered)
-                if (proximityLock?.isHeld != true) {
-                    handler.removeCallbacks(screenOffWhenCovered)
-                    handler.postDelayed(screenOffWhenCovered, COVER_DELAY_MS)
-                }
-            } else {
-                handler.removeCallbacks(screenOffWhenCovered)
-                if (proximityLock?.isHeld == true) {
-                    handler.removeCallbacks(screenOnWhenUncovered)
-                    handler.postDelayed(screenOnWhenUncovered, 1_000L)
-                }
+            if (near != lastNear) {
+                lastNear = near
+                notifyListeners("proximity", JSObject().put("near", near))
             }
+            handler.removeCallbacks(pocketOn)
+            if (near) handler.postDelayed(pocketOn, COVER_DELAY_MS)
+            else setPocketScreen(false)
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -189,12 +189,8 @@ class ScoreboardPlugin : Plugin() {
         })
     }
 
-    private fun proximitySupported(): Boolean {
-        val pm = context.getSystemService(PowerManager::class.java)
-        val sm = context.getSystemService(SensorManager::class.java)
-        return pm.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK) &&
-            sm?.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null
-    }
+    private fun proximitySupported(): Boolean =
+        context.getSystemService(SensorManager::class.java)?.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null
 
     private fun startProximityWatch() {
         if (proximityWatching || !proximitySupported()) return
@@ -208,16 +204,43 @@ class ScoreboardPlugin : Plugin() {
             context.getSystemService(SensorManager::class.java)?.unregisterListener(proximityListener)
             proximityWatching = false
         }
-        handler.removeCallbacks(screenOffWhenCovered)
-        handler.removeCallbacks(screenOnWhenUncovered)
-        releaseProximity()
+        handler.removeCallbacks(pocketOn)
+        lastNear = null
+        setPocketScreen(false)
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setPocketScreen(on: Boolean) {
+        if (on) acquireProximity() else releaseProximity()
+        val act = activity ?: return
+        act.runOnUiThread {
+            if (on) {
+                val view = pocketView ?: View(act).apply {
+                    setBackgroundColor(Color.BLACK)
+                    isClickable = true
+                    setOnTouchListener { _, _ -> true }
+                }.also {
+                    act.addContentView(it, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                    pocketView = it
+                }
+                view.visibility = View.VISIBLE
+                view.bringToFront()
+            } else {
+                pocketView?.visibility = View.GONE
+            }
+            val attrs = act.window.attributes
+            attrs.screenBrightness = if (on) 0.01f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            act.window.attributes = attrs
+        }
     }
 
     // Met de sensor al bedekt gaat het scherm direct uit; zodra hij vrij is
     // weer aan (dat regelt PowerManager zelf zolang de lock vastgehouden wordt).
     private fun acquireProximity() {
-        if (proximityLock?.isHeld == true || !proximitySupported()) return
-        proximityLock = context.getSystemService(PowerManager::class.java)
+        if (proximityLock?.isHeld == true) return
+        val pm = context.getSystemService(PowerManager::class.java)
+        if (!pm.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) return
+        proximityLock = pm
             .newWakeLock(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "scoreboard:pocket")
             .apply { setReferenceCounted(false); acquire(3 * 60 * 60 * 1000L) }
     }
