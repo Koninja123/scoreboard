@@ -15,7 +15,7 @@ geen Play Store en geen Apple-account nodig.
 - **Bescherming tegen tikken in je broekzak**
   - alleen vasthouden telt, schuiven of twee contactpunten tegelijk breken af
   - automatisch vergrendelen na 10 s zonder actie terwijl de klok loopt (uit te zetten); ontgrendelen = slot 1,5 s vasthouden
-  - Android: *zakmodus*, het scherm gaat uit als de nabijheidssensor 2 sec bedekt is (zoals tijdens bellen); de tijd kort vasthouden om te pauzeren zet het scherm dus niet uit
+  - Android: *zakmodus*, het scherm gaat uit zodra de nabijheidssensor bedekt is (zoals tijdens bellen)
   - resetten, speeltijd wijzigen en nieuwe wedstrijd vragen om bevestiging
   - geen scoreknoppen in de melding op het vergrendelscherm
 - **Uitslagen**: na de laatste periode of bij *Nieuwe wedstrijd* wordt de eindstand automatisch bewaard.

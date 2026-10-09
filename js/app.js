@@ -44,7 +44,6 @@ const el = {
   optAutoLock:    document.querySelector("#opt-autolock"),
   optPocket:      document.querySelector("#opt-pocket"),
   optPocketRow:   document.querySelector("#opt-pocket-row"),
-  pocketStatus:   document.querySelector("#pocket-status"),
   batteryBtn:     document.querySelector("#battery-btn"),
   testAlarm:      document.querySelector("#test-alarm"),
   testWarn:       document.querySelector("#test-warn"),
@@ -95,11 +94,6 @@ async function initialize() {
 
   if (isNative) {
     native.onAlarmState(setAlarmActive);
-    native.onProximity((near) => {
-      el.pocketStatus.textContent = near
-        ? "Sensor: BEDEKT — na 2 sec wordt het scherm zwart"
-        : "Sensor: vrij";
-    });
     refreshNativeAlarm();
     refreshCapabilities();
     pushNativeClock();
@@ -354,7 +348,7 @@ function onRunningChanged() {
   if (isNative) {
     if (running) native.ensureNotificationPermission();
     pushNativeClock();
-    applyFieldMode();
+    native.setFieldMode({ keepAwake: running, proximity: running && state.settings.pocketMode });
     return;
   }
 
@@ -719,21 +713,10 @@ async function shareText(text) {
 function openSettings() {
   hydrateSettings();
   el.sheet.hidden = false;
-  applyFieldMode();
 }
 
 function closeSettings() {
   el.sheet.hidden = true;
-  applyFieldMode();
-}
-
-// Android: scherm aan zolang de klok loopt; zakmodus actief tijdens de klok
-// en ook als de instellingen open staan (om de sensor te kunnen testen).
-function applyFieldMode() {
-  if (!isNative) return;
-  const running = timer.isRunning;
-  const testing = !el.sheet.hidden;
-  native.setFieldMode({ keepAwake: running, proximity: state.settings.pocketMode && (running || testing) });
 }
 
 function hydrateSettings() {
@@ -754,7 +737,6 @@ function updateSetting(key, value) {
   state.settings[key] = value;
   persistState();
   if (timer.isRunning) onRunningChanged();
-  else applyFieldMode();
 }
 
 function applyMinutes(value) {
