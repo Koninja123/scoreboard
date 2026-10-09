@@ -29,6 +29,7 @@ const el = {
   periodBadge:    document.querySelector("#period-badge"),
   status:         document.querySelector("#status"),
   undoBtn:        document.querySelector("#undo-btn"),
+  endBtn:         document.querySelector("#end-btn"),
   openSettings:   document.querySelector("#open-settings"),
   sheet:          document.querySelector("#settings-sheet"),
   closeSettings:  document.querySelector("#close-settings"),
@@ -122,7 +123,17 @@ function bindEvents() {
   bindHold(el.clockTime, {
     duration: HOLD_MS,
     onTap: onClockTap,
-    onHold: () => (timer.isRunning ? pauseClock() : onClockTap()),
+    onHold: () => {
+      if (timer.isRunning) pauseClock();
+      else if (isMatchFinished() && !alarmActive) startNextMatch();
+      else onClockTap();
+    },
+  });
+
+  bindHold(el.endBtn, {
+    duration: HOLD_MS,
+    onHold: startNextMatch,
+    onTap: () => showHint("Houd de knop vast voor een nieuwe wedstrijd"),
   });
 
   el.openSettings.addEventListener("click", openSettings);
@@ -272,7 +283,7 @@ function onClockTap() {
   if (alarmActive) { stopAlarmNow(); return; }
   if (state.clock.completed) {
     if (state.period < state.totalPeriods) nextPeriod();
-    else showHint("Wedstrijd klaar — nieuwe wedstrijd via ⚙", 4000);
+    else showHint("Houd de tijd vast voor een nieuwe wedstrijd", 4000);
     return;
   }
   if (timer.isRunning) { showHint("Houd de tijd vast om te pauzeren"); return; }
@@ -299,8 +310,9 @@ function pauseClock() {
 
 function resetClock() {
   stopAlarmNow();
-  timer.reset();
+  // Eerst de status wissen: timer.reset() tekent de klok direct opnieuw.
   state.clock = { running: false, endTimeMs: null, remainingMs: null, completed: false };
+  timer.reset();
   undoStack = [];
   hideUndoBtn();
   persistState();
@@ -385,6 +397,10 @@ function completedStatus() {
     : "Einde wedstrijd — uitslag opgeslagen";
 }
 
+function isMatchFinished() {
+  return state.clock.completed && state.period >= state.totalPeriods;
+}
+
 function isClockTouched() {
   return timer.isRunning || state.clock.completed || timer.remainingMs < timer.durationMs;
 }
@@ -408,6 +424,7 @@ function updateClockUi(isRunning, remainingMs) {
 
 function setClockState(stateName) {
   el.clock.dataset.state = stateName;
+  el.endBtn.hidden = !(stateName === "done" && isMatchFinished());
 }
 
 function showHint(text, ms = 2500) {
@@ -556,6 +573,14 @@ function newMatch() {
   hydrateSettings();
   pushNativeClock();
   showHint("Nieuwe wedstrijd — vul de teamnamen in", 3000);
+}
+
+// Vanaf het hoofdscherm na het eindsignaal: uitslag is al bewaard, dus geen
+// bevestiging nodig (vasthouden is de bevestiging). Daarna meteen teamnamen.
+function startNextMatch() {
+  stopAlarmNow();
+  newMatch();
+  openSettings();
 }
 
 function openResults() {

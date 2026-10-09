@@ -8,6 +8,9 @@ geen Play Store en geen Apple-account nodig.
 - **Score** voor blauw en rood: **vasthouden (~0,6 s) = +1**, `−1` ook vasthouden, *Ongedaan* na elke wijziging
 - **Klok** met helften/kwarten, 15/30/35 min of vrije tijd. **Tik = start**, **vasthouden = pauze**
 - **Alarm** aan het einde van elke periode, met grote *Stop alarm*-knop
+- **Na het eindsignaal**: tik op de tijd = volgende helft/kwart. Na de laatste periode verschijnt
+  **Nieuwe wedstrijd** (vasthouden, of de tijd vasthouden). De uitslag is dan al bewaard en het
+  teamnamen-scherm opent meteen. De stand corrigeren na het eindsignaal kan gewoon en past de uitslag mee aan
 - **Piep bij 1 minuut** resterend (aan/uit in de instellingen)
 - **Bescherming tegen tikken in je broekzak**
   - alleen vasthouden telt, schuiven of twee contactpunten tegelijk breken af
