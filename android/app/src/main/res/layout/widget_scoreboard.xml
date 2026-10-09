@@ -67,4 +67,14 @@
         android:textSize="16sp"
         android:textColor="#CCD6E4"
         android:fontFeatureSettings="tnum" />
+
+    <Chronometer
+        android:id="@+id/widget_chrono"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        android:textSize="16sp"
+        android:textColor="#CCD6E4"
+        android:fontFeatureSettings="tnum" />
 </LinearLayout>

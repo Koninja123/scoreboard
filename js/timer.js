@@ -1,3 +1,5 @@
+// Afteltimer op basis van een absolute eindtijd, zodat hij niet uit de pas
+// raakt als de app even op de achtergrond staat of opnieuw wordt opgestart.
 export class CountdownTimer {
   constructor({ onTick, onComplete }) {
     this.onTick = onTick;
@@ -12,30 +14,34 @@ export class CountdownTimer {
   setDurationMinutes(minutes) {
     const safeMinutes = Math.max(1, Math.min(120, Number(minutes) || 1));
     this.durationMs = safeMinutes * 60 * 1000;
-    this.remainingMs = this.durationMs;
+    this.reset();
+  }
+
+  // Herstel een gepauzeerde of afgelopen stand.
+  setRemaining(ms) {
+    this.stopTicking();
     this.isRunning = false;
     this.endTime = null;
-    this.stopTicking();
+    this.remainingMs = Math.max(0, Math.min(this.durationMs, ms));
     this.emitTick();
   }
 
   start() {
-    if (this.isRunning || this.remainingMs <= 0) {
-      return;
-    }
+    if (this.isRunning || this.remainingMs <= 0) return;
+    this.resumeUntil(Date.now() + this.remainingMs);
+  }
 
-    this.endTime = Date.now() + this.remainingMs;
+  // Loop door tot een vaste eindtijd (ook gebruikt bij herstel na herstart).
+  resumeUntil(endTime) {
+    this.endTime = endTime;
     this.isRunning = true;
     this.stopTicking();
-    this.tick();
     this.intervalId = window.setInterval(() => this.tick(), 250);
+    this.tick();
   }
 
   pause() {
-    if (!this.isRunning) {
-      return;
-    }
-
+    if (!this.isRunning) return;
     this.remainingMs = Math.max(0, this.endTime - Date.now());
     this.isRunning = false;
     this.endTime = null;
@@ -52,18 +58,16 @@ export class CountdownTimer {
   }
 
   tick() {
-    if (!this.isRunning) {
-      return;
-    }
-
+    if (!this.isRunning) return;
     this.remainingMs = Math.max(0, this.endTime - Date.now());
     this.emitTick();
 
     if (this.remainingMs === 0) {
+      const endTime = this.endTime;
       this.isRunning = false;
       this.endTime = null;
       this.stopTicking();
-      this.onComplete();
+      this.onComplete({ endTime });
     }
   }
 
